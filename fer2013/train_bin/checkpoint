@@ -1,0 +1,6 @@
+model_checkpoint_path: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-51000"
+all_model_checkpoint_paths: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-47000"
+all_model_checkpoint_paths: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-48000"
+all_model_checkpoint_paths: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-49000"
+all_model_checkpoint_paths: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-50000"
+all_model_checkpoint_paths: "C:\\Users\\sjannin\\workspace\\Facial Emotion Recognition/fer2013/train_\\model.ckpt-51000"
