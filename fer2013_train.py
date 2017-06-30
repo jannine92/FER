@@ -48,7 +48,7 @@ import fer2013
 
 FLAGS = tf.app.flags.FLAGS
 
-local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train'
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train1'
 
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
@@ -59,7 +59,7 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_integer('log_frequency', 10,
                             """How often to log results to the console.""")
-tf.app.flags.DEFINE_integer('batch_size', 128,
+tf.app.flags.DEFINE_integer('train_batch_size', 128,
                             """Number of images to process in a batch.""")
 
 TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
@@ -81,7 +81,7 @@ def train():
     
         # Build a Graph that computes the logits predictions from the
         # inference model.
-        logits = fer2013.inference(images, keep_prob, FLAGS.batch_size)
+        logits = fer2013.inference(images, keep_prob, FLAGS.train_batch_size)
     
         # Calculate loss.
         loss = fer2013.loss(logits, labels)
@@ -111,7 +111,7 @@ def train():
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir,
                                                 sess.graph)
 
-        epoch_size = int(FLAGS.max_steps / FLAGS.batch_size)
+        epoch_size = int(FLAGS.max_steps / FLAGS.train_batch_size)
         epoch_count = 0
     
         for step in xrange(FLAGS.max_steps):
@@ -122,7 +122,7 @@ def train():
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
             
             if step % 10 == 0:
-                num_examples_per_step = FLAGS.batch_size
+                num_examples_per_step = FLAGS.train_batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
                 
@@ -142,7 +142,7 @@ def train():
 
             if step % epoch_size == 0:
                 epoch_count += 1
-                print('epoch: ' + epoch_count)
+                print('epoch: ' + str(epoch_count))
 
         # from: https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10_train.py
         """class _LoggerHook(tf.train.SessionRunHook):
