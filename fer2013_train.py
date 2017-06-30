@@ -53,14 +53,17 @@ local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train'
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 100000, # eigentlich: 1000000
+tf.app.flags.DEFINE_integer('max_steps', 500000, # actually: 1000000
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_integer('log_frequency', 10,
                             """How often to log results to the console.""")
+tf.app.flags.DEFINE_integer('batch_size', 128,
+                            """Number of images to process in a batch.""")
 
 TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
+
 
 
 def train():
@@ -78,7 +81,7 @@ def train():
     
         # Build a Graph that computes the logits predictions from the
         # inference model.
-        logits = fer2013.inference(images, keep_prob, 128)
+        logits = fer2013.inference(images, keep_prob, FLAGS.batch_size)
     
         # Calculate loss.
         loss = fer2013.loss(logits, labels)
@@ -87,7 +90,7 @@ def train():
         # updates the model parameters.
         train_op = fer2013.train(loss, global_step)
     
-        """# Create a saver.
+        # Create a saver.
         saver = tf.train.Saver(tf.global_variables())
     
         # Build the summary operation based on the TF collection of Summaries.
@@ -107,6 +110,9 @@ def train():
    
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir,
                                                 sess.graph)
+
+        epoch_size = int(FLAGS.max_steps / FLAGS.batch_size)
+        epoch_count = 0
     
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
@@ -132,10 +138,15 @@ def train():
             # Save the model checkpoint periodically.
             if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
-                saver.save(sess, checkpoint_path, global_step=step)"""
-        
-        class _LoggerHook(tf.train.SessionRunHook):
-            """Logs loss and runtime."""
+                saver.save(sess, checkpoint_path, global_step=step)
+
+            if step % epoch_size == 0:
+                epoch_count += 1
+                print('epoch: ' + epoch_count)
+
+        # from: https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10_train.py
+        """class _LoggerHook(tf.train.SessionRunHook):
+            #Logs loss and runtime.
 
             def begin(self):
                 self._step = -1
@@ -168,7 +179,7 @@ def train():
             config=tf.ConfigProto(
                 log_device_placement=FLAGS.log_device_placement)) as mon_sess:
             while not mon_sess.should_stop():
-                mon_sess.run(train_op)
+                mon_sess.run(train_op)"""
         
         print('Training finished')
 

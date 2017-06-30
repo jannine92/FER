@@ -39,6 +39,7 @@ import sys
 import os
 
 import cv2
+from matplotlib import pyplot as plt
 
 import tensorflow as tf
 import fer2013
@@ -55,7 +56,7 @@ tf.app.flags.DEFINE_string('eval_dir', (local_directory+'eval'),
 #tf.app.flags.DEFINE_string('eval_data', 'test',
 tf.app.flags.DEFINE_string('eval_data', 'make_prediction',
                            """Either 'test' or 'train_eval' or 'make_prediction'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train_new'), #actually: 'train'
+tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train'), #actually: 'train'
                            """Directory where to read model checkpoints.""")
 
 
@@ -137,6 +138,9 @@ def predict():
         # ------------------ end Version 2 --------------------
         
         img = cv2.imread(local_directory + input_image_png, 0)
+        #cv2.cvShowImage(img)
+        #plt.imshow(img, cmap = 'gray', interpolation = 'bicubic')
+        #plt.show()
         cv2.imshow("Emotion Image", img)
         print("--------------- Press ENTER to return to Webcam ---------------")
 
@@ -180,7 +184,7 @@ def main(input_image=None, webcam=False):  # pylint: disable=unused-argument
     if tf.gfile.Exists(FLAGS.eval_dir):
         tf.gfile.DeleteRecursively(FLAGS.eval_dir)
     tf.gfile.MakeDirs(FLAGS.eval_dir)
-    if(webcam):
+    if webcam:
         global input_image_csv
         global input_image_png
         input_image_csv = input_image + '.csv'

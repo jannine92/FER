@@ -222,7 +222,7 @@ def inference(images, keep_prob, batch_size):
         kernel = _variable_with_weight_decay('weights', shape=[5, 5, 1, 64], # original: [5, 5, 3, 64]
                                              stddev=1e-4, wd=0.0) #new: 5e-2
         # conv2d(input, filter, strides, padding, use_cudnn_on_gpu)
-        conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME') #use_cudnn_on_gpu=True is default
         biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
         bias = tf.nn.bias_add(conv, biases)
         conv1 = tf.nn.relu(bias, name=scope.name)
@@ -231,7 +231,9 @@ def inference(images, keep_prob, batch_size):
     # pool1
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
                            padding='SAME', name='pool1')
-    # norm1 (local response normalization -> form of lateral inhibition)
+    # norm1 (local response normalization -> form of lateral inhibition )
+    # -> excited neurons reduce activity of neighbors so that only the output of the
+    # strongest is fired
     norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
                       name='norm1')
 
