@@ -48,7 +48,7 @@ import fer2013
 
 FLAGS = tf.app.flags.FLAGS
 
-local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train1'
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_conv'
 
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
