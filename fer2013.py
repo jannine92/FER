@@ -203,6 +203,11 @@ def inputs(eval_data, input_file):
                                 #batch_size=FLAGS.batch_size)"""
 
 
+# Links Visualization:
+# https://stackoverflow.com/questions/35759220/how-to-visualize-learned-filters-on-tensorflow
+# https://gist.github.com/kukuruza/03731dc494603ceab0c5
+
+
 def inference(images, keep_prob, batch_size):
     """Build the CIFAR-10 model.
     
@@ -217,6 +222,11 @@ def inference(images, keep_prob, batch_size):
     # If we only ran this model on a single GPU, we could simplify this function
     # by replacing all instances of tf.get_variable() with tf.Variable().
     #
+
+
+
+
+
     # conv1
     with tf.variable_scope('conv1') as scope:
         kernel = _variable_with_weight_decay('weights', shape=[5, 5, 1, 64], # original: [5, 5, 3, 64]
@@ -227,6 +237,18 @@ def inference(images, keep_prob, batch_size):
         bias = tf.nn.bias_add(conv, biases)
         conv1 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv1)
+
+        """with tf.variable_scope('visualization'):
+            # scale weights to [0 1], type is still float
+            x_min = tf.reduce_min(kernel)
+            x_max = tf.reduce_max(kernel)
+            kernel_0_to_1 = (kernel - x_min) / (x_max - x_min)
+
+            # to tf.image_summary format [batch_size, height, width, channels]
+            kernel_transposed = tf.transpose(kernel_0_to_1, [3, 0, 1, 2])
+
+            # this will display random 3 filters from the 64 in conv1
+            tf.image_summary('conv1/filters', kernel_transposed, max_images=3)"""
 
     # pool1
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
@@ -258,7 +280,7 @@ def inference(images, keep_prob, batch_size):
     with tf.variable_scope('conv3') as scope:
         kernel = _variable_with_weight_decay('weights', shape=[5, 5, 64, 64],
                                              stddev=1e-4, wd=0.0)
-        conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(pool2, kernel, [1, 1, 1, 1], padding='SAME')
         biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv3 = tf.nn.relu(bias, name=scope.name)

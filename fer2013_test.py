@@ -51,12 +51,12 @@ FLAGS = tf.app.flags.FLAGS
 local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013' + '/'
 
 
-tf.app.flags.DEFINE_string('eval_dir', (local_directory+'eval'),
+tf.app.flags.DEFINE_string('eval_dir', (local_directory+'eval_conv'),
                            """Directory where to write event logs.""")
 #tf.app.flags.DEFINE_string('eval_data', 'test',
 tf.app.flags.DEFINE_string('eval_data', 'test',
                            """Either 'test' or 'train_eval'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train1'), #actually: 'train'
+tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train_conv'), #actually: 'train'
                            """Directory where to read model checkpoints.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
                             """How often to run the eval.""")
@@ -96,6 +96,8 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
     
         # Start the queue runners.
         coord = tf.train.Coordinator()
+        init_local = tf.local_variables_initializer()
+        sess.run(init_local)
         try:
             threads = []
             for qr in tf.get_collection(tf.GraphKeys.QUEUE_RUNNERS):

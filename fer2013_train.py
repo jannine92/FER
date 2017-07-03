@@ -39,6 +39,7 @@ from __future__ import print_function
 from datetime import datetime
 import os.path
 import time
+import sys
 
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -82,6 +83,17 @@ def train():
         # Build a Graph that computes the logits predictions from the
         # inference model.
         logits = fer2013.inference(images, keep_prob, FLAGS.train_batch_size)
+
+        #
+        # ... and somewhere inside "def train():" after calling "inference()"
+        #
+
+        # Visualize conv1 kernels
+        with tf.variable_scope('conv1'):
+            tf.get_variable_scope().reuse_variables()
+            weights = tf.get_variable('weights')
+            grid = put_kernels_on_grid(weights)
+            tf.image.summary('conv1/kernels', grid, max_outputs=1)
     
         # Calculate loss.
         loss = fer2013.loss(logits, labels)
@@ -106,12 +118,12 @@ def train():
 
         # Start the queue runners.
         tf.train.start_queue_runners(sess=sess)
-        
-   
+
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir,
                                                 sess.graph)
 
-        epoch_size = int(FLAGS.max_steps / FLAGS.train_batch_size)
+        epoch_size = int(fer2013.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.train_batch_size)
+        print("Epoch size: ", epoch_size)
         epoch_count = 0
     
         for step in xrange(FLAGS.max_steps):
@@ -180,12 +192,77 @@ def train():
                 log_device_placement=FLAGS.log_device_placement)) as mon_sess:
             while not mon_sess.should_stop():
                 mon_sess.run(train_op)"""
-        
+
+
+
         print('Training finished')
+
+
+from math import sqrt
+
+def put_kernels_on_grid (kernel, pad = 1):
+
+    '''Visualize conv. filters as an image (mostly for the 1st layer).
+    Arranges filters into a grid, with some paddings between adjacent filters.
+
+    Args:
+    kernel:            tensor of shape [Y, X, NumChannels, NumKernels]
+    pad:               number of black pixels around each filter (between them)
+
+    Return:
+    Tensor of shape [1, (Y+2*pad)*grid_Y, (X+2*pad)*grid_X, NumChannels].
+    '''
+    # get shape of the grid. NumKernels == grid_Y * grid_X
+    def factorization(n):
+        for i in range(int(sqrt(float(n))), 0, -1):
+            if n % i == 0:
+                if i == 1: print('Who would enter a prime number of filters')
+                return (i, int(n / i))
+    (grid_Y, grid_X) = factorization (kernel.get_shape()[3].value)
+    print ('grid: %d = (%d, %d)' % (kernel.get_shape()[3].value, grid_Y, grid_X))
+
+    x_min = tf.reduce_min(kernel)
+    x_max = tf.reduce_max(kernel)
+    kernel = (kernel - x_min) / (x_max - x_min)
+
+    # pad X and Y
+    x = tf.pad(kernel, tf.constant( [[pad,pad],[pad, pad],[0,0],[0,0]] ), mode = 'CONSTANT')
+
+    # X and Y dimensions, w.r.t. padding
+    Y = kernel.get_shape()[0] + 2 * pad
+    X = kernel.get_shape()[1] + 2 * pad
+
+    channels = kernel.get_shape()[2]
+
+    # put NumKernels to the 1st dimension
+    x = tf.transpose(x, (3, 0, 1, 2))
+    # organize grid on Y axis
+    x = tf.reshape(x, tf.stack([grid_X, Y * grid_Y, X, channels]))
+
+    # switch X and Y axes
+    x = tf.transpose(x, (0, 2, 1, 3))
+    # organize grid on X axis
+    x = tf.reshape(x, tf.stack([1, X * grid_X, Y * grid_Y, channels]))
+
+    # back to normal order (not combining with the next step for clarity)
+    x = tf.transpose(x, (2, 1, 3, 0))
+
+    # to tf.image_summary order [batch_size, height, width, channels],
+    #   where in this case batch_size == 1
+    x = tf.transpose(x, (3, 0, 1, 2))
+
+    # scaling to [0, 255] is not necessary for tensorboard
+    return x
+
+
+
+
 
 def main(argv=None):  # pylint: disable=unused-argument
     if tf.gfile.Exists(FLAGS.train_dir):
-        tf.gfile.DeleteRecursively(FLAGS.train_dir)
+        print("Folder is not empty, choose another one!")
+        sys.exit(0)
+        #tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
     

@@ -37,8 +37,9 @@ IMAGE_SIZE = 32
 NUM_CLASSES = 7
 NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 28709 # training set 50000
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 3589 # public test set 10000
+NUM_EPOCHS_TEST = 1
 #TRAIN_INPUT_FILE = "train.csv"
-TEST_INPUT_FILE = "test.csv"
+#TEST_INPUT_FILE = "test.csv"
 
 
 """
@@ -480,10 +481,12 @@ def inputs(eval_data, data_dir, batch_size, input_file):
     
     #if not tf.gfile.Exists(filename):
     #       raise ValueError('Failed to find file: ' + filename)
-                
-    
+
     # Create a queue that produces the filenames to read.
-    filename_queue = tf.train.string_input_producer(filename)
+    if(eval_data == 'test'):
+        filename_queue = tf.train.string_input_producer(filename, num_epochs=2) # TODO: change back to 1
+    else:
+        filename_queue = tf.train.string_input_producer(filename)
     
     read_input = read_fer2013(filename_queue, eval_data == 'make_prediction')
     
