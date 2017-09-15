@@ -47,9 +47,10 @@ import tensorflow as tf
 
 import fer2013
 
+
 FLAGS = tf.app.flags.FLAGS
 
-local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_conv'
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_k533_f128-256-256-AO_c5_lr13_dr12c2345'
 
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
@@ -60,15 +61,15 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_integer('log_frequency', 10,
                             """How often to log results to the console.""")
-tf.app.flags.DEFINE_integer('train_batch_size', 128,
+tf.app.flags.DEFINE_integer('train_batch_size', 128, # normal: 128
                             """Number of images to process in a batch.""")
 
 TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
-
+# TRAIN_INPUT_FILE = "Input_Dataset/train-small.csv"
 
 
 def train():
-    """Train CIFAR-10 for a number of steps."""
+    """Train FER-2013 for a number of steps."""
     with tf.Graph().as_default():
         global_step = tf.contrib.framework.get_or_create_global_step()
     
@@ -78,7 +79,7 @@ def train():
         with tf.device('/cpu:0'):  
             images, labels = fer2013.distorted_inputs(TRAIN_INPUT_FILE)
         
-        keep_prob = 0.5
+        keep_prob = 0.7
     
         # Build a Graph that computes the logits predictions from the
         # inference model.
@@ -93,10 +94,14 @@ def train():
             tf.get_variable_scope().reuse_variables()
             weights = tf.get_variable('weights')
             grid = put_kernels_on_grid(weights)
-            tf.image.summary('conv1/kernels', grid, max_outputs=1)
-    
+            tf.summary.image('conv1/kernels', grid, max_outputs=1)
+
+        top_k_op = tf.nn.in_top_k(logits, labels, 1)
+
         # Calculate loss.
         loss = fer2013.loss(logits, labels)
+
+        acc = fer2013.accuracy(logits, labels)
     
         # Build a Graph that trains the model with one batch of examples and
         # updates the model parameters.
@@ -123,17 +128,47 @@ def train():
                                                 sess.graph)
 
         epoch_size = int(fer2013.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.train_batch_size)
-        print("Epoch size: ", epoch_size)
+        # print("Epoch size: ", epoch_size)
         epoch_count = 0
+
+        """"# = epoch_size: num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
+        true_count = 0  # Counts the number of correct predictions.
+        total_sample_count = epoch_size * FLAGS.train_batch_size
+        step = 0
+        while step < epoch_size and not coord.should_stop():
+            predictions = sess.run([top_k_op])
+            true_count += np.sum(predictions)
+            step += 1
+
+        # Compute precision @ 1.
+        precision = true_count / total_sample_count
+        print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))"""
+
+        total_sample_count = epoch_size * FLAGS.train_batch_size
+        # true_count = 0
+
+        init_local = tf.local_variables_initializer()
+        sess.run(init_local)
     
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss])
+            # correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
+            # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+            # accu = sess.run([acc])
             duration = time.time() - start_time
-            
+            """st = 0
+            while st < epoch_size:
+                pred = sess.run([top_k_op])
+                st += 1"""
+
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
             
             if step % 10 == 0:
+                accu = sess.run([acc])
+                print('Acc: ', accu)
+                #print("bla")
+
                 num_examples_per_step = FLAGS.train_batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
@@ -146,6 +181,16 @@ def train():
             if step % 100 == 0:
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
+
+                '''true_count = 0
+                st = 0
+                while st < epoch_size:
+                    predictions = sess.run([top_k_op])
+                    true_count += np.sum(predictions)
+                    st += 1
+
+                accuracy = true_count / total_sample_count
+                print("Accuracy: ", accuracy, ' right predicted: ', true_count)'''
             
             # Save the model checkpoint periodically.
             if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
@@ -193,16 +238,24 @@ def train():
             while not mon_sess.should_stop():
                 mon_sess.run(train_op)"""
 
-
-
         print('Training finished')
+        true_count = 0
+        st = 0
+        while st < epoch_size:
+            predictions = sess.run([top_k_op])
+            true_count += np.sum(predictions)
+            st += 1
+
+        accuracy = true_count / total_sample_count
+        print("Accuracy: ", accuracy, ' right predicted: ', true_count)
 
 
 from math import sqrt
 
+
 def put_kernels_on_grid (kernel, pad = 1):
 
-    '''Visualize conv. filters as an image (mostly for the 1st layer).
+    """Visualize conv. filters as an image (mostly for the 1st layer).
     Arranges filters into a grid, with some paddings between adjacent filters.
 
     Args:
@@ -211,7 +264,7 @@ def put_kernels_on_grid (kernel, pad = 1):
 
     Return:
     Tensor of shape [1, (Y+2*pad)*grid_Y, (X+2*pad)*grid_X, NumChannels].
-    '''
+    """
     # get shape of the grid. NumKernels == grid_Y * grid_X
     def factorization(n):
         for i in range(int(sqrt(float(n))), 0, -1):
@@ -255,9 +308,6 @@ def put_kernels_on_grid (kernel, pad = 1):
     return x
 
 
-
-
-
 def main(argv=None):  # pylint: disable=unused-argument
     if tf.gfile.Exists(FLAGS.train_dir):
         print("Folder is not empty, choose another one!")
@@ -265,7 +315,6 @@ def main(argv=None):  # pylint: disable=unused-argument
         #tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
-    
 
 
 if __name__ == '__main__':

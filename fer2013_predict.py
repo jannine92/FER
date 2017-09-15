@@ -51,12 +51,12 @@ FLAGS = tf.app.flags.FLAGS
 local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013' + '/'
 
 
-tf.app.flags.DEFINE_string('eval_dir', (local_directory+'eval'),
+tf.app.flags.DEFINE_string('eval_dir', (local_directory+'eval-p1-n1'),
                            """Directory where to write event logs.""")
 #tf.app.flags.DEFINE_string('eval_data', 'test',
 tf.app.flags.DEFINE_string('eval_data', 'make_prediction',
                            """Either 'test' or 'train_eval' or 'make_prediction'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train'), #actually: 'train'
+tf.app.flags.DEFINE_string('checkpoint_dir', (local_directory+'train-p1-n1'), #actually: 'train'
                            """Directory where to read model checkpoints.""")
 
 
@@ -144,8 +144,6 @@ def predict():
         cv2.imshow("Emotion Image", img)
         print("--------------- Press ENTER to return to Webcam ---------------")
 
-        
-        
         key = cv2.waitKey(0)
         if key == 13:
             cv2.destroyAllWindows()
@@ -167,12 +165,11 @@ def make_prediction(saver, logits):
         # Start input enqueue threads.
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-        
-       
+
         highest_prob = tf.argmax(logits, 1)
         prediction = highest_prob.eval()
 
-        #print("Prediction: ", prediction, '\n') # make_prediction.eval(): # same as sess.run(make_prediction)
+        # print("Prediction: ", prediction, '\n') # make_prediction.eval(): # same as sess.run(make_prediction)
         
         coord.request_stop()  
         coord.join(threads)

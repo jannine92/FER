@@ -270,7 +270,6 @@ def read_fer2013(filename_queue, make_prediction):
     return result
 
 
-
 def read_cifar10(filename_queue):
     """Reads and parses examples from CIFAR10 data files.
     
@@ -484,7 +483,7 @@ def inputs(eval_data, data_dir, batch_size, input_file):
 
     # Create a queue that produces the filenames to read.
     if(eval_data == 'test'):
-        filename_queue = tf.train.string_input_producer(filename, num_epochs=2) # TODO: change back to 1
+        filename_queue = tf.train.string_input_producer(filename) # TODO: change back to 1
     else:
         filename_queue = tf.train.string_input_producer(filename)
     

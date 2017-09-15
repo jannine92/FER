@@ -110,9 +110,6 @@ def takePictures():
         cv2.imshow("Webcam", frame) #Display frame
         #sleep(0.5)
         
-        
-        
-        
         if cv2.waitKey(1) & 0xFF == ord('q'): #imshow expects a termination definition in order to work correctly, here it is bound to key 'q'
             break
 
