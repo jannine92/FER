@@ -51,18 +51,22 @@ import tensorflow as tf
 import fer2013
 
 FLAGS = tf.app.flags.FLAGS
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_k533_f128-256-256-AO_c5_lr13_dr12c2345-9'
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/fer2013_train',
+tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 1000000,
+tf.app.flags.DEFINE_integer('max_steps', 700000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_integer('num_gpus', 1,
                             """How many GPUs to use.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
+tf.app.flags.DEFINE_integer('train_batch_size', 128,
+                            """Number of images to process in a batch.""")
 
 TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
+
 
 def tower_loss(scope):
     """Calculate the total loss on a single tower running the CIFAR model.
@@ -78,11 +82,13 @@ def tower_loss(scope):
     keep_prob = 0.5
     
     # Build inference Graph.
-    logits = fer2013.inference(images, keep_prob, 128)
+    logits = fer2013.inference(images, keep_prob, FLAGS.train_batch_size)
     
     # Build the portion of the Graph calculating the losses. Note that we will
     # assemble the total_loss using a custom function below.
     _ = fer2013.loss(logits, labels)
+
+    acc = fer2013.accuracy(logits, labels)
     
     # Assemble all of the losses for the current tower only.
     losses = tf.get_collection('losses', scope)
@@ -200,7 +206,7 @@ def train():
         
         # Add a summary to track the learning rate.
         summaries.append(tf.summary.scalar('learning_rate', lr))
-        
+
         # Add histograms for gradients.
         for grad, var in grads:
             if grad:
