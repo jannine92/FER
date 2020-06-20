@@ -7,13 +7,12 @@ import sys
 
 import fer2013_predict
 
+''' Make predictions with trained CNN: Take a picture with your
+webcam (click on SPACE) and the prediction 
+is calculated in fer2013_predict.py
+'''
 
-# opencv version for Linux: conda install --channel loopbio --channel conda-forge --channel pkgw-forge gtk2 ffmpeg ffmpeg-feature gtk2-feature opencv openblas
-
-# HOG based face detection with library dlib: http://www.pyimagesearch.com/2017/04/17/real-time-facial-landmark-detection-opencv-python-dlib/
- 
 face = None
-#global count
 count = 1
 
 def get_path():
@@ -40,17 +39,11 @@ def takePictures():
     
     global face
     
-    # right profil faces: https://github.com/opencv/opencv/blob/master/data/lbpcascades/lbpcascade_profileface.xml
-    
-    """if video_capture.isOpened(): # try to get the first frame
-            rval, frame = vc.read()
-        else:
-    rval = False"""
     
     print("--------------- Press SPACE to take picture to predict ---------------")
     
     #count1 = 1
-    while True: # Bedingung, damit es nicht zu viele Bilder aufnimmt
+    while True: # condition so that it doesn't take too many pictures
         
         # read returns: return code(if we have run out of time -> when reading from file), actual video frame read (one frame each loop)
         _, frame = video_capture.read() #Grab frame from webcam. Ret is 'true' if the frame was successfully grabbed.
@@ -84,28 +77,6 @@ def takePictures():
             
             save_image()
             
-            """key = cv2.waitKey(50)
-            if key == 32: # press space to save an image
-                print("Space was pressed")
-            
-                try:
-                    face_resize = cv2.resize(face, (48, 48))
-                    image_name = '%s%s' % (path,count)
-                    png_image_name = image_name + '.png'
-                    cv2.imwrite(png_image_name, face_resize) # save image as png image
-                    
-                    pixels = np.asarray(face_resize)
-                    pixels = pixels.flatten()
-                    csv_name = image_name + '.csv'
-                    
-                    
-                    np.savetxt(csv_name, pixels[None], fmt='%i', delimiter=',') # [None] makes it to a 2D array with a single line
-                    print("Saved Image: ", csv_name)
-                    count += 1 #Increment image number
-                    #sleep(0.5)
-                except:
-                    pass #If error, pass file"""
-            
         cv2.namedWindow("Webcam")
         cv2.imshow("Webcam", frame) #Display frame
         #sleep(0.5)
@@ -119,10 +90,8 @@ def takePictures():
 
     
 def save_image():
-    #print("save image opened")
     key = cv2.waitKey(40)
     if key == 32: # press space to save an image
-        #print("Space was pressed")
         global count 
     
         try:
@@ -139,13 +108,10 @@ def save_image():
             
             
             np.savetxt(csv_name, pixels[None], fmt='%i', delimiter=',') # [None] makes it to a 2D array with a single line
-            print("Saved Image: ", csv_name)
             count += 1 #Increment image number
             
             fer2013_predict.main(image_name, True)
-            #print(x)
-            #return csv_name
-            #sleep(0.5)
+
         except:
             pass #If error, pass file
     elif key == ord('q'):
@@ -159,4 +125,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     tf.app.run()
-# Link: https://github.com/liy9393/emotion-detection

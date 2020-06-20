@@ -13,27 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
-"""A binary to train CIFAR-10 using multiple GPU's with synchronous updates.
+"""A binary to train FER2013 using multiple GPU's with synchronous updates.
 
-Accuracy:
-cifar10_multi_gpu_train.py achieves ~86% accuracy after 100K steps (256
-epochs of data) as judged by fer2013_test.py.
-
-Speed: With batch_size 128.
-
-System        | Step Time (sec/batch)  |     Accuracy
---------------------------------------------------------------------
-1 Tesla K20m  | 0.35-0.60              | ~86% at 60K steps  (5 hours)
-1 Tesla K40m  | 0.25-0.35              | ~86% at 100K steps (4 hours)
-2 Tesla K20m  | 0.13-0.20              | ~84% at 30K steps  (2.5 hours)
-3 Tesla K20m  | 0.13-0.18              | ~84% at 30K steps
-4 Tesla K20m  | ~0.10                  | ~84% at 30K steps
-
-Usage:
-Please see the tutorial and website for how to download the CIFAR-10
-data set, compile the program and train the model.
-
-http://tensorflow.org/tutorials/deep_cnn/
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -45,13 +26,12 @@ import re
 import time
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import xrange
 import tensorflow as tf
-#from tensorflow.models.image.cifar10 import cifar10
 import fer2013
 
 FLAGS = tf.app.flags.FLAGS
-local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_k533_f128-256-256-AO_c5_lr13_dr12c2345-9'
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train'
 
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
@@ -69,15 +49,15 @@ TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
 
 
 def tower_loss(scope):
-    """Calculate the total loss on a single tower running the CIFAR model.
+    """Calculate the total loss on a single tower running the model.
     
     Args:
-      scope: unique prefix string identifying the CIFAR tower, e.g. 'tower_0'
+      scope: unique prefix string identifying the  tower, e.g. 'tower_0'
     
     Returns:
        Tensor of shape [] containing the total loss for a batch of data
     """
-    # Get images and labels for CIFAR-10.
+    # Get images and labels
     images, labels = fer2013.distorted_inputs(TRAIN_INPUT_FILE)
     keep_prob = 0.5
     
@@ -155,7 +135,7 @@ def average_gradients(tower_grads):
 
 
 def train():
-    """Train CIFAR-10 for a number of steps."""
+    """Train FER2013 for a number of steps."""
     with tf.Graph().as_default(), tf.device('/cpu:0'):
         # Create a variable to count the number of train() calls. This equals the
         # number of batches processed * FLAGS.num_gpus.
@@ -183,8 +163,8 @@ def train():
         for i in xrange(FLAGS.num_gpus):
             with tf.device('/gpu:%d' % i):
                 with tf.name_scope('%s_%d' % (fer2013.TOWER_NAME, i)) as scope:
-                    # Calculate the loss for one tower of the CIFAR model. This function
-                    # constructs the entire CIFAR model but shares the variables across
+                    # Calculate the loss for one tower of the model. This function
+                    # constructs the entire model but shares the variables across
                     # all towers.
                     loss = tower_loss(scope)
                     
@@ -194,7 +174,7 @@ def train():
                     # Retain the summaries from the final tower.
                     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
                     
-                    # Calculate the gradients for the batch of data on this CIFAR tower.
+                    # Calculate the gradients for the batch of data on this tower.
                     grads = opt.compute_gradients(loss)
                     
                     # Keep track of the gradients across all towers.
@@ -278,7 +258,7 @@ def train():
                 saver.save(sess, checkpoint_path, global_step=step)
 
 
-def main(argv=None):  # pylint: disable=unused-argument
+def main(argv=None): 
     if tf.gfile.Exists(FLAGS.train_dir):
         tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)

@@ -13,24 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""A binary to train CIFAR-10 using a single GPU.
-
-Accuracy:
-cifar10_train.py achieves ~86% accuracy after 100K steps (256 epochs of
-data) as judged by fer2013_test.py.
-
-Speed: With batch_size 128.
-
-System        | Step Time (sec/batch)  |     Accuracy
-------------------------------------------------------------------
-1 Tesla K20m  | 0.35-0.60              | ~86% at 60K steps  (5 hours)
-1 Tesla K40m  | 0.25-0.35              | ~86% at 100K steps (4 hours)
-
-Usage:
-Please see the tutorial and website for how to download the CIFAR-10
-data set, compile the program and train the model.
-
-http://tensorflow.org/tutorials/deep_cnn/
+"""A binary to train FER2013 using a single GPU.
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -42,7 +25,7 @@ import time
 import sys
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import xrange 
 import tensorflow as tf
 
 import fer2013
@@ -50,7 +33,7 @@ import fer2013
 
 FLAGS = tf.app.flags.FLAGS
 
-local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train_k533_f128-256-256-AO_c5_lr13_dr12c2345'
+local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013/train'
 
 tf.app.flags.DEFINE_string('train_dir', local_directory,
                            """Directory where to write event logs """
@@ -61,11 +44,10 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 tf.app.flags.DEFINE_integer('log_frequency', 10,
                             """How often to log results to the console.""")
-tf.app.flags.DEFINE_integer('train_batch_size', 128, # normal: 128
+tf.app.flags.DEFINE_integer('train_batch_size', 128,
                             """Number of images to process in a batch.""")
 
 TRAIN_INPUT_FILE = "Input_Dataset/train.csv"
-# TRAIN_INPUT_FILE = "Input_Dataset/train-small.csv"
 
 
 def train():
@@ -73,7 +55,7 @@ def train():
     with tf.Graph().as_default():
         global_step = tf.contrib.framework.get_or_create_global_step()
     
-        # Get images and labels for CIFAR-10.
+        # Get images and labels for FER2013.
         # Force input pipeline to CPU:0 to avoid operations sometimes ending up on
         # GPU and resulting in a slow down.
         with tf.device('/cpu:0'):  
@@ -85,9 +67,6 @@ def train():
         # inference model.
         logits = fer2013.inference(images, keep_prob, FLAGS.train_batch_size)
 
-        #
-        # ... and somewhere inside "def train():" after calling "inference()"
-        #
 
         # Visualize conv1 kernels
         with tf.variable_scope('conv1'):
@@ -128,24 +107,9 @@ def train():
                                                 sess.graph)
 
         epoch_size = int(fer2013.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.train_batch_size)
-        # print("Epoch size: ", epoch_size)
         epoch_count = 0
 
-        """"# = epoch_size: num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
-        true_count = 0  # Counts the number of correct predictions.
         total_sample_count = epoch_size * FLAGS.train_batch_size
-        step = 0
-        while step < epoch_size and not coord.should_stop():
-            predictions = sess.run([top_k_op])
-            true_count += np.sum(predictions)
-            step += 1
-
-        # Compute precision @ 1.
-        precision = true_count / total_sample_count
-        print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))"""
-
-        total_sample_count = epoch_size * FLAGS.train_batch_size
-        # true_count = 0
 
         init_local = tf.local_variables_initializer()
         sess.run(init_local)
@@ -153,21 +117,13 @@ def train():
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss])
-            # correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
-            # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            # accu = sess.run([acc])
             duration = time.time() - start_time
-            """st = 0
-            while st < epoch_size:
-                pred = sess.run([top_k_op])
-                st += 1"""
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
             
             if step % 10 == 0:
                 accu = sess.run([acc])
                 print('Acc: ', accu)
-                #print("bla")
 
                 num_examples_per_step = FLAGS.train_batch_size
                 examples_per_sec = num_examples_per_step / duration
@@ -182,15 +138,6 @@ def train():
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
 
-                '''true_count = 0
-                st = 0
-                while st < epoch_size:
-                    predictions = sess.run([top_k_op])
-                    true_count += np.sum(predictions)
-                    st += 1
-
-                accuracy = true_count / total_sample_count
-                print("Accuracy: ", accuracy, ' right predicted: ', true_count)'''
             
             # Save the model checkpoint periodically.
             if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
@@ -200,43 +147,6 @@ def train():
             if step % epoch_size == 0:
                 epoch_count += 1
                 print('epoch: ' + str(epoch_count))
-
-        # from: https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10_train.py
-        """class _LoggerHook(tf.train.SessionRunHook):
-            #Logs loss and runtime.
-
-            def begin(self):
-                self._step = -1
-                self._start_time = time.time()
-            
-            def before_run(self, run_context):
-                self._step += 1
-                return tf.train.SessionRunArgs(loss)  # Asks for loss value.
-            
-            def after_run(self, run_context, run_values):
-                if self._step % FLAGS.log_frequency == 0:
-                    current_time = time.time()
-                    duration = current_time - self._start_time
-                    self._start_time = current_time
-                
-                    loss_value = run_values.results
-                    examples_per_sec = FLAGS.log_frequency * FLAGS.batch_size / duration
-                    sec_per_batch = float(duration / FLAGS.log_frequency)
-                
-                    format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-                                  'sec/batch)')
-                    print (format_str % (datetime.now(), self._step, loss_value,
-                                         examples_per_sec, sec_per_batch))
-            
-        with tf.train.MonitoredTrainingSession(
-            checkpoint_dir=FLAGS.train_dir,
-            hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
-                   tf.train.NanTensorHook(loss),
-                   _LoggerHook()],
-            config=tf.ConfigProto(
-                log_device_placement=FLAGS.log_device_placement)) as mon_sess:
-            while not mon_sess.should_stop():
-                mon_sess.run(train_op)"""
 
         print('Training finished')
         true_count = 0
@@ -308,11 +218,10 @@ def put_kernels_on_grid (kernel, pad = 1):
     return x
 
 
-def main(argv=None):  # pylint: disable=unused-argument
+def main(argv=None): 
     if tf.gfile.Exists(FLAGS.train_dir):
         print("Folder is not empty, choose another one!")
         sys.exit(0)
-        #tf.gfile.DeleteRecursively(FLAGS.train_dir)
     tf.gfile.MakeDirs(FLAGS.train_dir)
     train()
 

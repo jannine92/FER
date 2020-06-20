@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Builds the CIFAR-10 network.
+"""Builds the network.
 
 Summary of available functions:
 
@@ -30,32 +30,26 @@ Summary of available functions:
  # Create a graph to run one step of training with respect to the loss.
  train_op = train(loss, global_step)
 """
-# pylint: disable=missing-docstring
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-#import gzip
 import os
 import re
 import sys
 import tarfile
 
-#from six.moves import urllib
 import tensorflow as tf
 
-#from tensorflow.models.image.cifar10 import fer2013_input
 import fer2013_input
-#from fer2013_test import FLAGS
 
 
 FLAGS = tf.app.flags.FLAGS
 
 local_directory = os.path.dirname(os.path.abspath(__file__))+ '/fer2013' + '/'
-#print("local directory path: " , local_directory)
 
 # Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 128, # 128
+tf.app.flags.DEFINE_integer('batch_size', 128,
                             """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_string('data_dir', local_directory,
                            """Path to the fer-2013 data directory.""")
@@ -143,7 +137,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 
 
 def distorted_inputs(train_input_file):
-    """Construct distorted input for CIFAR training using the Reader ops.
+    """Construct distorted input for training using the Reader ops.
     
     Returns:
       images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -164,17 +158,15 @@ def distorted_inputs(train_input_file):
         images = tf.cast(images, tf.float16)
         labels = tf.cast(labels, tf.float16)
     return images, labels
-    
-    """data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-    #return fer2013_input.distorted_inputs(data_dir=data_dir,
-                                          #batch_size=FLAGS.batch_size)"""
+
 
 
 def inputs(eval_data, input_file):
-    """Construct input for CIFAR evaluation using the Reader ops.
+    """Construct input for evaluation using the Reader ops.
     
     Args:
       eval_data: bool, indicating if one should use the train or eval data set.
+      input_file: input file with data
     
     Returns:
       images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -194,22 +186,15 @@ def inputs(eval_data, input_file):
         images = tf.cast(images, tf.float16)
         labels = tf.cast(labels, tf.float16)
     return images, labels
-    
-    """data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-    #return fer2013_input.inputs(eval_data=eval_data, data_dir=data_dir,
-                                #batch_size=FLAGS.batch_size)"""
-
-
-# Links Visualization:
-# https://stackoverflow.com/questions/35759220/how-to-visualize-learned-filters-on-tensorflow
-# https://gist.github.com/kukuruza/03731dc494603ceab0c5
 
 
 def inference(images, keep_prob, batch_size):
-    """Build the CIFAR-10 model.
+    """Build the FER2013 model.
     
     Args:
       images: Images returned from distorted_inputs() or inputs().
+      keep_prob: keep probability for Dropout layer
+      batch_size: batch size
     
     Returns:
       Logits.
@@ -220,14 +205,12 @@ def inference(images, keep_prob, batch_size):
     # by replacing all instances of tf.get_variable() with tf.Variable().
     #
 
-    # batch normalization: https://r2rt.com/implementing-batch-normalization-in-tensorflow.html
-
     epsilon = 1e-3
 
     # conv1
     with tf.variable_scope('conv1') as scope:
-        kernel = _variable_with_weight_decay('weights', shape=[5, 5, 1, 128], # original: [5, 5, 3, 64]
-                                             stddev=1e-4, wd=0.0) #new: 5e-2
+        kernel = _variable_with_weight_decay('weights', shape=[5, 5, 1, 128],
+                                             stddev=1e-4, wd=0.0) 
         # conv2d(input, filter, strides, padding, use_cudnn_on_gpu)
         conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME') #use_cudnn_on_gpu=True is default
         biases = _variable_on_cpu('biases', [128], tf.constant_initializer(0.0))
@@ -269,9 +252,6 @@ def inference(images, keep_prob, batch_size):
 
         _activation_summary(conv2)
 
-
-    # norm2
-    #norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,name='norm2')
     # pool2
     pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1],
                            strides=[1, 2, 2, 1], padding='SAME', name='pool2')
@@ -295,11 +275,6 @@ def inference(images, keep_prob, batch_size):
 
         _activation_summary(conv3)
 
-
-
-    # norm3
-    #norm3 = tf.nn.lrn(conv3, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                     # name='norm3')
     # pool3
     pool3 = tf.nn.max_pool(conv3, ksize=[1, 3, 3, 1],
                            strides=[1, 2, 2, 1], padding='SAME', name='pool3')
@@ -323,11 +298,8 @@ def inference(images, keep_prob, batch_size):
 
         _activation_summary(conv4)
 
-
-
         # norm4
-        # norm4 = tf.nn.lrn(conv4, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-        # name='norm4')
+
     # pool4
     pool4 = tf.nn.max_pool(conv4, ksize=[1, 3, 3, 1],
                            strides=[1, 2, 2, 1], padding='SAME', name='pool4')
@@ -351,10 +323,6 @@ def inference(images, keep_prob, batch_size):
 
         _activation_summary(conv5)
 
-        # norm5
-        # norm5 = tf.nn.lrn(conv5, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-        # name='norm5')
-
     # pool5
     pool5 = tf.nn.max_pool(conv5, ksize=[1, 3, 3, 1],
                            strides=[1, 2, 2, 1], padding='SAME', name='pool5')
@@ -367,7 +335,6 @@ def inference(images, keep_prob, batch_size):
         dim = 1
         for d in dropout_c5.get_shape()[1:].as_list():
             dim *= d
-        # reshape = tf.reshape(pool2, [FLAGS.batch_size, dim])
         reshape = tf.reshape(dropout_c5, [batch_size, dim])
         
         weights = _variable_with_weight_decay('weights', shape=[dim, 384],
@@ -399,8 +366,6 @@ def inference(images, keep_prob, batch_size):
         softmax_linear = tf.add(tf.matmul(dropout2, weights), biases, name=scope.name) # dropout instead of local5
         _activation_summary(softmax_linear)
 
-        #softmax = tf.nn.softmax(logits, dim)
-
     return softmax_linear
 
 
@@ -429,9 +394,6 @@ def loss(logits, labels):
 
 
 def accuracy(logits, labels):
-    '''labels = tf.cast(labels, tf.int64)
-    accuracy = tf.metrics.accuracy(labels, logits)
-    tf.add_to_collection('accuracy', accuracy)'''
 
     labels = tf.cast(labels, tf.int64)
     correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
@@ -498,7 +460,6 @@ def train(total_loss, global_step):
     # Generate moving averages of all losses and associated summaries.
     loss_averages_op = _add_loss_summaries(total_loss)
 
-    # AdamOptimizer: http://cs231n.github.io/neural-networks-3/
     # Compute gradients.
     with tf.control_dependencies([loss_averages_op]):
         # tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False, name='Adam')
@@ -507,10 +468,6 @@ def train(total_loss, global_step):
         # epsilon: small constant for numerical stability
         # use_locking: if True use locks for update operations
         opt = tf.train.AdamOptimizer(learning_rate=lr)
-        # opt = tf.train.AdamOptimizer().minimize(total_loss)
-        opt = tf.train.AdamOptimizer() #
-        #tf.summary.scalar('Adam_Optimizer', opt)
-        # opt = tf.train.GradientDescentOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
 
     # Apply gradients.
